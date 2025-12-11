@@ -7,10 +7,15 @@ interface TrafficContextType {
   selectedRoute: Route | null;
   predictionResult: PredictionResult | null;
   alternativeRoutes: AlternativeRoute[];
+  directionsResults: google.maps.DirectionsResult[];
   isLoading: boolean;
+  searchOrigin: string;
+  searchDestination: string;
   selectRoute: (routeId: string) => void;
   getPrediction: (routeId: string) => Promise<void>;
   searchRoutes: (origin: string, destination: string) => Promise<void>;
+  setDirectionsResults: (results: google.maps.DirectionsResult[]) => void;
+  setAlternativeRoutes: (routes: AlternativeRoute[]) => void;
   clearSelection: () => void;
 }
 
@@ -21,7 +26,10 @@ export const TrafficProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [predictionResult, setPredictionResult] = useState<PredictionResult | null>(null);
   const [alternativeRoutes, setAlternativeRoutes] = useState<AlternativeRoute[]>([]);
+  const [directionsResults, setDirectionsResults] = useState<google.maps.DirectionsResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchOrigin, setSearchOrigin] = useState('');
+  const [searchDestination, setSearchDestination] = useState('');
 
   const selectRoute = (routeId: string) => {
     const route = routes.find(r => r.id === routeId);
@@ -57,48 +65,10 @@ export const TrafficProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const searchRoutes = async (origin: string, destination: string) => {
+    setSearchOrigin(origin);
+    setSearchDestination(destination);
     setIsLoading(true);
-    
-    // Simulate API call for route alternatives
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const colors = ['#4ade80', '#3b82f6', '#f59e0b', '#ef4444'];
-    const levels: CongestionLevel[] = ['Low', 'Medium', 'High'];
-    
-    const alternatives: AlternativeRoute[] = [
-      {
-        id: 'alt-1',
-        summary: `via Highway 101`,
-        distance: '15.2 km',
-        currentTime: 32,
-        predictedTime: 25,
-        congestionLevel: 'Low',
-        isFastest: true,
-        color: colors[0],
-      },
-      {
-        id: 'alt-2',
-        summary: `via Downtown`,
-        distance: '12.8 km',
-        currentTime: 28,
-        predictedTime: 35,
-        congestionLevel: 'Medium',
-        isFastest: false,
-        color: colors[1],
-      },
-      {
-        id: 'alt-3',
-        summary: `via Industrial Blvd`,
-        distance: '18.5 km',
-        currentTime: 38,
-        predictedTime: 42,
-        congestionLevel: 'High',
-        isFastest: false,
-        color: colors[2],
-      },
-    ];
-    
-    setAlternativeRoutes(alternatives);
+    // The actual directions fetching will be handled by the component using Google Maps API
     setIsLoading(false);
   };
 
@@ -106,6 +76,9 @@ export const TrafficProvider: React.FC<{ children: ReactNode }> = ({ children })
     setSelectedRoute(null);
     setPredictionResult(null);
     setAlternativeRoutes([]);
+    setDirectionsResults([]);
+    setSearchOrigin('');
+    setSearchDestination('');
   };
 
   return (
@@ -115,10 +88,15 @@ export const TrafficProvider: React.FC<{ children: ReactNode }> = ({ children })
         selectedRoute,
         predictionResult,
         alternativeRoutes,
+        directionsResults,
         isLoading,
+        searchOrigin,
+        searchDestination,
         selectRoute,
         getPrediction,
         searchRoutes,
+        setDirectionsResults,
+        setAlternativeRoutes,
         clearSelection,
       }}
     >
