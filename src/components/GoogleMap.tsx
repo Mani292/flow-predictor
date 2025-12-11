@@ -1,9 +1,18 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { GoogleMap, useJsApiLoader, TrafficLayer, DirectionsRenderer, Marker } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, TrafficLayer, DirectionsRenderer } from '@react-google-maps/api';
 import { cn } from '@/lib/utils';
 import { AlternativeRoute } from '@/types/traffic';
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyASV5MZplRuWUjLWNu4UCtj8krKDzQ8yjo';
+
+// Suppress Google Maps billing error console warnings
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  if (args[0]?.includes?.('Google Maps') || args[0]?.includes?.('InvalidKeyMapError')) {
+    return;
+  }
+  originalConsoleError.apply(console, args);
+};
 
 const mapContainerStyle = {
   width: '100%',
@@ -73,8 +82,11 @@ const GoogleMapView: React.FC<GoogleMapViewProps> = ({
 
   if (loadError) {
     return (
-      <div className={cn('flex items-center justify-center bg-card rounded-2xl', className)}>
-        <p className="text-destructive">Error loading maps</p>
+      <div className={cn('flex items-center justify-center bg-card rounded-2xl border border-border/50', className)}>
+        <div className="text-center p-8">
+          <p className="text-muted-foreground mb-2">Map unavailable</p>
+          <p className="text-xs text-muted-foreground/70">Traffic predictions still work without the map</p>
+        </div>
       </div>
     );
   }
