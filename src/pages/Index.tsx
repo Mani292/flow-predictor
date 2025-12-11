@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTraffic } from '@/context/TrafficContext';
 import Header from '@/components/Header';
-import MapView from '@/components/MapView';
+import GoogleMapView from '@/components/GoogleMap';
 import RouteCard from '@/components/RouteCard';
 import SearchPanel from '@/components/SearchPanel';
 import PredictionCard from '@/components/PredictionCard';
@@ -10,6 +10,7 @@ import AlternativeRouteList from '@/components/AlternativeRouteList';
 import StatsBar from '@/components/StatsBar';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
+import { useGoogleDirections } from '@/hooks/useGoogleDirections';
 
 type ViewMode = 'home' | 'prediction' | 'search-results';
 
@@ -19,14 +20,18 @@ const Index: React.FC = () => {
     selectedRoute, 
     predictionResult, 
     alternativeRoutes,
+    directionsResults,
     isLoading, 
     selectRoute, 
     getPrediction, 
-    searchRoutes,
+    setDirectionsResults,
+    setAlternativeRoutes,
     clearSelection 
   } = useTraffic();
   
   const [viewMode, setViewMode] = useState<ViewMode>('home');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const { fetchDirections } = useGoogleDirections();
 
   const handleRouteClick = async (routeId: string) => {
     selectRoute(routeId);
@@ -35,8 +40,14 @@ const Index: React.FC = () => {
   };
 
   const handleSearch = async (origin: string, destination: string) => {
-    await searchRoutes(origin, destination);
-    setViewMode('search-results');
+    setSearchLoading(true);
+    const result = await fetchDirections(origin, destination);
+    if (result) {
+      setDirectionsResults(result.directions);
+      setAlternativeRoutes(result.alternatives);
+      setViewMode('search-results');
+    }
+    setSearchLoading(false);
   };
 
   const handleBack = () => {
@@ -63,7 +74,7 @@ const Index: React.FC = () => {
           )}
 
           {/* Loading overlay */}
-          {isLoading && (
+          {(isLoading || searchLoading) && (
             <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
               <div className="glass rounded-2xl p-8 flex flex-col items-center gap-4">
                 <Loader2 className="w-10 h-10 text-primary animate-spin" />
@@ -95,17 +106,15 @@ const Index: React.FC = () => {
               <div className="grid lg:grid-cols-3 gap-6">
                 {/* Map & Search */}
                 <div className="lg:col-span-2 space-y-4">
-                  <MapView 
-                    routes={routes} 
-                    selectedRouteId={selectedRoute?.id}
-                    onRouteClick={handleRouteClick}
+                  <GoogleMapView 
                     className="h-[400px] md:h-[500px]"
+                    showTraffic={true}
                   />
                   
                   {/* Search Panel */}
                   <div className="glass rounded-xl p-4">
                     <h2 className="text-sm font-medium text-muted-foreground mb-4">Smart Route Search</h2>
-                    <SearchPanel onSearch={handleSearch} isLoading={isLoading} />
+                    <SearchPanel onSearch={handleSearch} isLoading={searchLoading} />
                   </div>
                 </div>
 
@@ -152,9 +161,11 @@ const Index: React.FC = () => {
           {viewMode === 'search-results' && alternativeRoutes.length > 0 && (
             <div className="grid lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <MapView 
+                <GoogleMapView 
+                  directions={directionsResults}
                   alternativeRoutes={alternativeRoutes}
                   className="h-[400px] md:h-[500px]"
+                  showTraffic={true}
                 />
               </div>
               <div>
