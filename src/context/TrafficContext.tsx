@@ -41,11 +41,48 @@ export const TrafficProvider: React.FC<{ children: ReactNode }> = ({ children })
   const getPrediction = async (routeId: string) => {
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    
     const route = routes.find(r => r.id === routeId);
-    if (route) {
+    if (!route) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const currentHour = new Date().getHours();
+      const dayType = new Date().getDay() === 0 || new Date().getDay() === 6 ? 'weekend' : 'weekday';
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/predict-traffic`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          route_id: routeId,
+          hour: currentHour,
+          day_type: dayType,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Prediction API failed');
+      }
+
+      const data = await response.json();
+      
+      setPredictionResult({
+        routeId: route.id,
+        routeName: route.name,
+        currentTravelTime: data.currentTravelTime,
+        predictedTravelTime: data.predictedTravelTime,
+        congestionLevel: data.congestionLevel,
+        confidence: data.confidence,
+        timeSaved: data.timeSaved,
+        optimalDepartureSlots: data.optimalDepartureSlots,
+      });
+    } catch (error) {
+      console.error('Prediction error:', error);
+      // Fallback to mock data if API fails
       const timeSlots = generateTimeSlots(routeId);
       const timeSaved = route.currentTravelTime - route.predictedTravelTime;
       
